@@ -1,3 +1,5 @@
+import mysql.connector
+from datetime import datetime
 def get_impact_strength(accel_readings):
     return max(accel_readings)
 
@@ -36,6 +38,17 @@ def check_alert(confidence):
         return "Trigger confirmation alert!"
     else:
         return "No alert needed!"
+# Connect to database
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="NewPass123!",
+    database="project_lifeline"
+)
+cursor = db.cursor()
+cursor.execute("SELECT COUNT(*) FROM users")
+count = cursor.fetchone()[0]
+print(f"Number of users in database: {count}")
 
 
 test_cases = [
@@ -74,3 +87,16 @@ for case in test_cases:
     result = check_alert(confidence)
 
     print(f"{case['name']}: impact={impact_strength}, speed_drop={speed_drop}, stillness={stillness_seconds}, confidence={confidence} -> {result}")
+        # Insert into database
+    if confidence >= 70:
+        sql = "INSERT INTO alerts (user_id, trigger_type, location_lat, location_lng) VALUES (%s, %s, %s, %s)"
+        val = (1, 'auto', 28.6139, 77.2090)
+        cursor.execute(sql, val)
+        db.commit()
+        print("✅ Alert saved to database!")
+    else:
+        sql = "INSERT INTO sensor_readings (user_id, impact_value, speed_value, stillness_value, location_lat, location_lng) VALUES (%s, %s, %s, %s, %s, %s)"
+        val = (1, impact_strength, speed_drop, stillness_seconds, 28.6139, 77.2090)
+        cursor.execute(sql, val)
+        db.commit()
+        print("📊 Sensor reading saved to database!")
